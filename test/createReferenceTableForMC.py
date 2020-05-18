@@ -12,26 +12,28 @@ process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.MagneticField_38T_cff')
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 
-process.GlobalTag.globaltag = '80X_mcRun2_asymptotic_2016_miniAODv2_v1'
+process.GlobalTag.globaltag = '102X_upgrade2018_realistic_v19'
 
-process.MessageLogger.cerr.FwkReport.reportEvery = 100
+process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(20))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(-1))
 process.source = cms.Source("PoolSource",
         fileNames = cms.untracked.vstring(
-            '/store/mc/RunIISpring16MiniAODv2/TT_TuneCUETP8M1_13TeV-powheg-pythia8/MINIAODSIM/PUSpring16_80X_mcRun2_asymptotic_2016_miniAODv2_v0_ext3-v2/70000/041A166C-B53F-E611-BF34-5CB90179CCC0.root'
+            '/store/mc/RunIIAutumn18MiniAOD/TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/MINIAODSIM/102X_upgrade2018_realistic_v15-v1/270000/0C645070-A197-2648-B6E3-9AA2D7545A4F.root'
             )
         )
 
+events = cms.untracked.VEventRange()
+for line in open('TT.txt'):
+    events.append(line.rstrip("\n"))
+process.source.eventsToProcess = cms.untracked.VEventRange(events)
+
 process.out = cms.OutputModule("PoolOutputModule",
         outputCommands = cms.untracked.vstring('keep *'),
-        fileName = cms.untracked.string("jme_reference_sample_mc_80x.root")
+        fileName = cms.untracked.string("jme_reference_sample_mc.root")
         )
 
-# Jets
-
-### First, apply new JEC over slimmedJets
-
+# First, apply new JEC over slimmedJets
 from PhysicsTools.PatAlgos.producersLayer1.jetUpdater_cff import updatedPatJetCorrFactors
 from PhysicsTools.PatAlgos.producersLayer1.jetUpdater_cff import updatedPatJets
 
@@ -46,26 +48,20 @@ process.slimmedJetsNewJEC = updatedPatJets.clone(
         jetCorrFactorsSource = cms.VInputTag(cms.InputTag("patJetCorrFactorsReapplyJEC"))
         )
 
-
-#### Second, smear newly corrected jets
-
+# Second, smear newly corrected jets
 process.slimmedJetsSmeared = cms.EDProducer('SmearedPATJetProducer',
         src = cms.InputTag('slimmedJetsNewJEC'),
         enabled = cms.bool(True),
         rho = cms.InputTag("fixedGridRhoFastjetAll"),
         algo = cms.string('AK4PFchs'),
         algopt = cms.string('AK4PFchs_pt'),
-
         genJets = cms.InputTag('slimmedGenJets'),
         dRMax = cms.double(0.2),
         dPtMaxFactor = cms.double(3),
-
         debug = cms.untracked.bool(False)
         )
 
-
 # MET
-
 process.genMet = cms.EDProducer("GenMETExtractor",
         metSource = cms.InputTag("slimmedMETs", "", "@skipCurrentProcess")
         )
@@ -119,5 +115,8 @@ process.produceTable = cms.EDAnalyzer('JMEReferenceTableAnalyzer',
         smeared_met = cms.InputTag('slimmedMETsSmeared')
         )
 
-process.p = cms.Path(process.produceTable)
+
+process.p = cms.Path(process.patJetCorrFactorsReapplyJEC + process.slimmedJetsNewJEC + process.slimmedJetsSmeared + process.genMet + process.uncorrectedMet + process.uncorrectedPatMet + process.Type1CorrForNewJEC + process.slimmedMETsNewJEC + process.shiftedMETCorrModuleForSmearedJets + process.slimmedMETsSmeared + process.produceTable)
+
+#process.p = cms.Path(process.produceTable)
 process.end = cms.EndPath(process.out)

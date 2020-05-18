@@ -209,5 +209,5 @@ JMEReferenceTableAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& desc
   descriptions.addDefault(desc);
 }
 
-//define this as a plug-in
+// Define this as a plug-in
 DEFINE_FWK_MODULE(JMEReferenceTableAnalyzer);
